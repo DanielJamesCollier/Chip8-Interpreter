@@ -5,17 +5,18 @@
 #include <thread>
 #include <iostream>
 
-// todo
-// add command line argument support
-// fix the timestep
-// add beeping noise
-// add CRT sim shader
-
 int main(int argc, char* argv[]) {
+    std::ios::sync_with_stdio(false); 
+    std::string rom("INVADERS");
     
-    std::cout <<  argv[0] << std::endl;
-
-    Chip8 chip8("INVADERS");
+    // allow the user to specify a ROM as a command line argument    
+    if (argc == 2) {
+        rom = argv[1]; 
+    } else {
+        std::cout << "\nTo select a ROM pass it as a command line argument as follows\nChip8-Interpreter PONG\nelse the default is Space Invaders\n";
+    } 
+    
+    Chip8 chip8(rom);
     
     using namespace std::chrono_literals;
 
