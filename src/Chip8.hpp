@@ -9,13 +9,8 @@ public  /*RAII*/:
     Chip8(Chip8 &&) = delete;
 
 public  /*functions*/:
-    void reset(std::string const &rom_name);
     void tick();
     std::array<std::uint8_t, 64 * 32>& getPixels(); 
-
-private /*functions*/:
-    void load_fontset_into_ram();
-    void load_rom_into_ram(std::string const &rom_name);
 
 public /* data */:
     bool draw_flag;

@@ -8,27 +8,6 @@
 #include <iomanip>
 #include <cstdlib>
 
-//--------------------------------------
-std::uint8_t chip8_fontset[80] {
-    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-    0x20, 0x60, 0x20, 0x20, 0x70, // 1
-    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-};
-
-
 /* public RAII */
 //--------------------------------------
 Chip8::Chip8(std::string const &rom_name)
@@ -44,28 +23,49 @@ Chip8::Chip8(std::string const &rom_name)
 ,   keys()
 ,   pixels()
 {
+    // load font into RAM
+    std::uint8_t chip8_fontset[80] {
+         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+         0x20, 0x60, 0x20, 0x20, 0x70, // 1
+         0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+         0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+         0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+         0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+         0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+         0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+         0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+         0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+         0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+         0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+         0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+         0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+         0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    };
 
-    load_fontset_into_ram();
-    load_rom_into_ram(rom_name);
-}
-/* public functions */
-//--------------------------------------
-void 
-Chip8::reset(std::string const &rom_name) {
-    delay_timer = 0;
-    sound_timer = 0;
-    stack_pointer = 0;
-    registers.fill(0);
-    ram.fill(0);
-    address_register = 0;
-    opcode = 0;
-    program_counter = 0x200;
-    keys.fill(0);
-    pixels.fill(0);
-    draw_flag = false;
+    for (auto i = 0; i < 80; i++) {
+        ram[i] = chip8_fontset[i]; 
+    }
+    
+    // load rom into ram
+    std::string rom_path("./roms/" + rom_name); 
+    std::ifstream rom(rom_path, std::ios::binary | std::ios::in);
+    
+    if (!rom.is_open()) {
+        std::cerr << "Error: ROM not found\n";
+        std::exit(EXIT_FAILURE); 
+    }
 
-    load_fontset_into_ram();
-    load_rom_into_ram(rom_name);
+    std::vector<std::uint8_t> buffer((std::istreambuf_iterator<char>(rom)), std::istreambuf_iterator<char>());
+    
+    if (buffer.size() > 4096 - 512) {
+        std::cerr << "Error: rom is too big to fit into RAM\n";
+        std::exit(EXIT_FAILURE);
+    }
+
+    for (std::size_t i = 0; i < buffer.size(); i++) {
+        ram[i + program_counter] = buffer[i];
+    }
 }
 
 //--------------------------------------
@@ -453,27 +453,3 @@ Chip8::getPixels() {
     return pixels;
 }
 
-//--------------------------------------
-void
-Chip8::load_rom_into_ram(std::string const &rom_name) {
-    std::string rom_path("./roms/" + rom_name); 
-    std::ifstream rom(rom_path, std::ios::binary | std::ios::in);
-    
-    if (!rom.is_open()) {
-        std::cerr << "Rom is not open\n";
-        std::exit(EXIT_FAILURE); 
-    }
-
-    std::vector<std::uint8_t> buffer((std::istreambuf_iterator<char>(rom)), std::istreambuf_iterator<char>());
-    
-    for (std::size_t i = 0; i < buffer.size(); i++) {
-        ram[i + 512] = buffer[i];
-    }
-} 
-//--------------------------------------
-void
-Chip8::load_fontset_into_ram() {
-    for (auto i = 0; i < 80; i++) {
-        ram[i] = chip8_fontset[i]; 
-    }
-}
