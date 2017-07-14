@@ -1,6 +1,22 @@
+#ifndef CHIP8_HPP
+#define CHIP8_HPP
+
+// std
 #include <cstdint>
 #include <array>
 #include <string>
+
+namespace chip8_consts {
+    constexpr auto num_registers {16};
+    constexpr auto num_keys      {16};
+    constexpr auto gfx_width     {64};
+    constexpr auto gfx_height    {32};
+    constexpr auto num_pixels    {gfx_width * gfx_height};
+    constexpr auto ram_size      {4096};
+    constexpr auto stack_size    {16}; 
+    constexpr auto rom_max_size  {ram_size - 0x200};
+    constexpr auto rom_start     {0x200};
+}
 
 class Chip8 final {
 public  /*RAII*/:
@@ -10,30 +26,23 @@ public  /*RAII*/:
 
 public  /*functions*/:
     void tick();
-    std::array<std::uint8_t, 64 * 32>& getPixels(); 
+    void renderTo(std::array<std::uint32_t, chip8_consts::num_pixels> &RGBA_buffer);
+    void updateSystemTimers();
 
-public /* data */:
-    bool draw_flag;
-    std::array<std::uint8_t, 16> keys;
-
-private /*data*/:
-    // timers
-    std::uint8_t delay_timer;
-    std::uint8_t sound_timer;
-    
-    // stack
-    std::uint16_t stack_pointer;
-    std::array<std::uint16_t, 16> stack;
-
-    // RAM and registers
-    std::array<std::uint8_t, 16> registers; // 16 8bit registers V0 -> VF
-    std::array<std::uint8_t, 4096> ram;
-
-    // special purpose registers
-    std::uint16_t address_register;
+private /* data */:
     std::uint16_t opcode;
     std::uint16_t program_counter;
-    
-    // graphics
-    std::array<std::uint8_t, 64 * 32> pixels;
+    std::uint16_t address_register;
+    std::uint16_t stack_pointer;
+    std::array<std::uint16_t, chip8_consts::stack_size> stack;
+    std::array<std::uint8_t, chip8_consts::num_registers> registers; // 16 8bit registers V0 -> VF
+    std::array<std::uint8_t, chip8_consts::ram_size> ram;
+    std::array<std::uint8_t, chip8_consts::num_pixels> pixels;
+    std::uint8_t delay_timer;
+    std::uint8_t sound_timer;
+
+public /* data */:
+    std::array<std::uint8_t, chip8_consts::num_keys> keys;
+    bool draw_flag;
 };
+#endif // CHIP8_HPP

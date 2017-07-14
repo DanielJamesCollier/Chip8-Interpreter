@@ -11,17 +11,18 @@
 /* public RAII */
 //--------------------------------------
 Chip8::Chip8(std::string const &rom_name)
-:   draw_flag(false)
-,   delay_timer(0)
-,   sound_timer(0)
-,   stack_pointer(0)
-,   registers()
-,   ram()
-,   address_register(0)
-,   opcode(0)
-,   program_counter(0x200)
-,   keys()
-,   pixels()
+:   opcode{0}
+,   program_counter{chip8_consts::rom_start}
+,   address_register{0}
+,   stack_pointer{0}
+,   stack{}
+,   registers{}
+,   ram{}
+,   pixels{}
+,   delay_timer{0}
+,   sound_timer{0}
+,   keys{}
+,   draw_flag{false}
 {
     // load font into RAM
     std::uint8_t chip8_fontset[80] {
@@ -48,26 +49,20 @@ Chip8::Chip8(std::string const &rom_name)
     }
     
     // load rom into ram
-    std::string rom_path("./roms/" + rom_name); 
+    std::string rom_path{"./roms/" + rom_name}; 
     std::ifstream rom(rom_path, std::ios::binary | std::ios::in);
     
-    if (!rom.is_open()) {
-        std::cerr << "Error: ROM not found\n";
-        std::exit(EXIT_FAILURE); 
-    }
-
-    std::vector<std::uint8_t> buffer((std::istreambuf_iterator<char>(rom)), std::istreambuf_iterator<char>());
-    
-    if (buffer.size() > 4096 - 512) {
-        std::cerr << "Error: rom is too big to fit into RAM\n";
-        std::exit(EXIT_FAILURE);
-    }
-
-    for (std::size_t i = 0; i < buffer.size(); i++) {
-        ram[i + program_counter] = buffer[i];
+    if (rom.is_open()) {
+        std::size_t i = 0;
+        while (rom.good()) {
+            ram[0x200 + i++] = rom.get();
+        }
+    } else {
+        std::cerr << "ROM was not found\n";
     }
 }
 
+/* public functions*/
 //--------------------------------------
 void
 Chip8::tick() {
@@ -80,21 +75,17 @@ Chip8::tick() {
         return (opcode & mask) >> right_shift;
     };
 
-    auto opcode_error_print = [this](std::string custom_error_string, bool crash_on_error = false) {
+    auto opcode_error_print = [this](std::string custom_error_string) {
         std::cerr << "Error: " << custom_error_string << "\nopcode: " << std::hex << std::showbase << opcode << '\n'; 
-        if (crash_on_error) {
-            std::exit(EXIT_FAILURE);
-        }
+        std::exit(EXIT_FAILURE);
     };
     
     // Fetch op code
     opcode = ram[program_counter] << 8 | ram[program_counter + 1];   // Op code is two bytes
     
     switch(mask(0xF000)){
-            
             // 00E_
         case 0x0000:
-            
             switch (mask(0x000F)) {
                     // 00E0 - Clear screen
                 case 0x0000:
@@ -110,7 +101,7 @@ Chip8::tick() {
                     break;
                     
                 default:
-                    opcode_error_print("section 0x0000", true);
+                    opcode_error_print("section 0x0000");
             }
             break;
             
@@ -163,8 +154,7 @@ Chip8::tick() {
             
             // 8XY_
         case 0x8000:
-            switch (opcode & 0x000F) {
-                    
+            switch (mask(0x000F)) {
                     // 8XY0 - Sets VX to the value of VY.
                 case 0x0000:
                     registers[mask_shift(0x0F00, 8)] = registers[mask_shift(0x00F0, 4)];
@@ -194,21 +184,22 @@ Chip8::tick() {
                 case 0x0004:
                     registers[mask_shift(0x0F00, 8)] += registers[mask_shift(0x00F0, 4)];
 
-                    if(registers[mask_shift(0x00F0, 4)] > (0xFF - registers[mask_shift(0x0F00, 8)]))
+                    if (registers[mask_shift(0x00F0, 4)] > (0xFF - registers[mask_shift(0x0F00, 8)])) {
                         registers[0xF] = 1; //carry
-                    else
-                        registers[0xF] = 0;
+                    } else {
+                        registers[0xF] = 0; 
+                    }
                     program_counter += 2;
                     break;
                     
                     // 8XY5 - VY is subtracted from VX. VF is set to 0 when
                     // there's a borrow, and 1 when there isn't.
                 case 0x0005:
-                    if(registers[mask_shift(0x00F0, 4)] > registers[mask_shift(0x0F00, 8)])
+                    if (registers[mask_shift(0x00F0, 4)] > registers[mask_shift(0x0F00, 8)]) {
                         registers[0xF] = 0; // there is a borrow
-                    else
-                        registers[0xF] = 1;
-                    
+                    } else {
+                        registers[0xF] = 1; 
+                    }
                     registers[mask_shift(0x0F00, 8)] -= registers[mask_shift(0x00F0, 4)];
                     program_counter += 2;
                     break;
@@ -224,11 +215,11 @@ Chip8::tick() {
                     // 0x8XY7: Sets VX to VY minus VX. VF is set to 0 when there's
                     // a borrow, and 1 when there isn't.
                 case 0x0007:
-                    if(registers[mask_shift(0x0F00, 8)] > registers[mask_shift(0x00F0, 4)])	// VY-VX
-                        registers[0xF] = 0; // there is a borrow
-                    else
-                        registers[0xF] = 1;
-
+                    if (registers[mask_shift(0x0F00, 8)] > registers[mask_shift(0x00F0, 4)]) {	
+                        registers[0xF] = 0; // borrow
+                    } else {
+                        registers[0xF] = 1; 
+                    }
                     registers[mask_shift(0x0F00 , 8)] = registers[mask_shift(0x00F0, 4)] - registers[mask_shift(0x0F00, 8)];
                     program_counter += 2;
                     break;
@@ -242,16 +233,17 @@ Chip8::tick() {
                     break;
                     
                 default:
-                    opcode_error_print("section 0x8000", true);
+                    opcode_error_print("section 0x8000");
             }
             break;
             
             // 9XY0 - Skips the next instruction if VX doesn't equal VY.
         case 0x9000:
-            if (registers[mask_shift(0x0F00, 8)] != registers[mask_shift(0x00F0, 4)])
+            if (registers[mask_shift(0x0F00, 8)] != registers[mask_shift(0x00F0, 4)]) {
                 program_counter += 4;
-            else
-                program_counter += 2;
+            } else {
+                program_counter += 2; 
+            }
             break;
             
             // ANNN - Sets I to the address NNN.
@@ -314,23 +306,25 @@ Chip8::tick() {
                     // EX9E - Skips the next instruction if the key stored
                     // in VX is pressed.
                 case 0x009E:
-                    if (keys[registers[mask_shift(0x0F00, 8)]] != 0)
+                    if (keys[registers[mask_shift(0x0F00, 8)]] != 0) {
                         program_counter += 4;
-                    else
-                        program_counter += 2;
+                    } else {
+                        program_counter += 2; 
+                    }
                     break;
                     
                     // EXA1 - Skips the next instruction if the key stored
                     // in VX isn't pressed.
                 case 0x00A1:
-                    if (keys[registers[mask_shift(0x0F00, 8)]] == 0)
+                    if (keys[registers[mask_shift(0x0F00, 8)]] == 0) {
                         program_counter += 4;
-                    else
+                    } else {
                         program_counter += 2;
+                    }
                     break;
                     
                 default:
-                    opcode_error_print("section 0xE000", true);
+                    opcode_error_print("section 0xE000");
             }
             break;
             
@@ -355,9 +349,9 @@ Chip8::tick() {
                     }
                 }
                 
-                // If no key is pressed, return and try again.
-                if(!key_pressed)
-                    return;
+                // If no key is pressed, return. the program_counter isnt incremented 
+                // so the opcode will be called again until a key is pressed
+                if(!key_pressed) return;
                 
                 program_counter += 2;
             }
@@ -379,11 +373,11 @@ Chip8::tick() {
             case 0x001E:
                 // VF is set to 1 when range overflow (I+VX>0xFFF), and 0
                 // when there isn't.
-                if(address_register + registers[mask_shift(0x0F00, 8)] > 0xFFF)
+                if (address_register + registers[mask_shift(0x0F00, 8)] > 0xFFF) {
                     registers[0xF] = 1;
-                else
+                } else {
                     registers[0xF] = 0;
-
+                }
                 address_register += registers[mask_shift(0x0F00, 8)];
                 program_counter += 2;
                 break;
@@ -407,8 +401,9 @@ Chip8::tick() {
                 
                 // FX55 - Stores V0 to VX in memory starting at address I
             case 0x0055:
-                for (auto i = 0; i <= mask_shift(0x0F00, 8); ++i)
+                for (auto i = 0; i <= mask_shift(0x0F00, 8); ++i) {
                     ram[address_register + i] = registers[i];
+                }
                 
                 // On the original interpreter, when the
                 // operation is done, address_register= I + X + 1.
@@ -417,8 +412,9 @@ Chip8::tick() {
                 break;
                 
             case 0x0065:
-                for (auto i = 0; i <= mask_shift(0x0F00, 8); ++i)
+                for (auto i = 0; i <= mask_shift(0x0F00, 8); ++i) {
                     registers[i] = ram[address_register + i];
+                }
                 
                 // On the original interpreter,
                 // when the operation is done, I = I + X + 1.
@@ -427,29 +423,34 @@ Chip8::tick() {
                 break;
                 
             default:
-                opcode_error_print("section 0xF000", true);
+                opcode_error_print("section 0xF000");
         }
             break;
             
         default:
-            opcode_error_print("optcode not implemented", true);
+            opcode_error_print("optcode not implemented");
+    }
+}
+
+//--------------------------------------
+void
+Chip8::renderTo(std::array<std::uint32_t, 64 * 32> &RGBA_buffer) {
+    for (auto i = 0; i < chip8_consts::num_pixels; ++i) {
+        auto const & pixel = pixels[i];
+        RGBA_buffer[i] = (0x00FFFFFF * pixel) | 0xFF000000; 
+    } 
+}
+
+//--------------------------------------
+void
+Chip8::updateSystemTimers() {
+    if (delay_timer > 0) {
+        --delay_timer;
     }
     
-    
-    // Update timers
-    if (delay_timer > 0)
-        --delay_timer;
-    
-    if (sound_timer > 0)
+    if (sound_timer > 0) {
        if(sound_timer != 0) {
-//           std::cout << "Beep" << std::endl;
-       }
-        --sound_timer;
-
+            --sound_timer;
+        }
+    }
 }
-
-std::array<std::uint8_t, 64 * 32> &
-Chip8::getPixels() {
-    return pixels;
-}
-
