@@ -26,7 +26,6 @@ int main(int argc, char* argv[]) {
     Chip8 chip8(rom);
     SDL_Module sdl(64, 32, 10);
     std::array<std::uint32_t, 64 * 32> RGBA_buffer; 
-    std::cout << sizeof(Chip8) << std::endl;
 
     while(sdl.event_loop(chip8.keys)) {
         chip8.tick();    

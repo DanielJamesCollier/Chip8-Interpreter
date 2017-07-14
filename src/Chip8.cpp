@@ -10,7 +10,7 @@
 
 /* public RAII */
 //--------------------------------------
-Chip8::Chip8(std::string const &rom_name)
+Chip8::Chip8(std::string rom_name)
 :   opcode{0}
 ,   program_counter{chip8_consts::rom_start}
 ,   address_register{0}
@@ -48,18 +48,36 @@ Chip8::Chip8(std::string const &rom_name)
         ram[i] = chip8_fontset[i]; 
     }
     
-    // load rom into ram
+    /* ROM LOADING SECTINO */
+
     std::string rom_path{"./roms/" + rom_name}; 
     std::ifstream rom(rom_path, std::ios::binary | std::ios::in);
     
-    if (rom.is_open()) {
-        std::size_t i = 0;
-        while (rom.good()) {
-            ram[0x200 + i++] = rom.get();
-        }
-    } else {
-        std::cerr << "ROM was not found\n";
+    // if file not found handle that
+    while (!rom.is_open()) {
+        rom.close();
+        std::cout << "ROM: " << rom_path << " failed to open.\n";
+        std::cout << "would you like to try again y/n?\n";
+        std::string yes_no_maybe_i_dont_know;
+        std::cin >> yes_no_maybe_i_dont_know;
+
+        if (yes_no_maybe_i_dont_know == "n") {
+            std::exit(EXIT_SUCCESS);
+        } else if (yes_no_maybe_i_dont_know == "y") {
+            std::cout << "ROM name: ";
+            std::cin >> rom_name;
+            rom_path = "./roms/" + rom_name;
+            rom.open(rom_path, std::ios::binary | std::ios::in); 
+        } else {
+            std::cout << yes_no_maybe_i_dont_know << " does not equal y or n\n";
+        } 
     }
+   
+   // load ROM into RAM 
+   std::size_t i = 0;
+   while (rom.good()) {
+        ram[0x200 + i++] = rom.get();
+   }
 }
 
 /* public functions*/

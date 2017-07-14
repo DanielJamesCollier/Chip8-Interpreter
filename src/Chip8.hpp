@@ -20,7 +20,7 @@ namespace chip8_consts {
 
 class Chip8 final {
 public  /*RAII*/:
-    Chip8(std::string const &rom_name);
+    Chip8(std::string rom_name);
     Chip8(Chip8 const &) = delete;
     Chip8(Chip8 &&) = delete;
 
