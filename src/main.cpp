@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
     auto width {64};
     auto height {32};
 
-    std::string rom {"PONG"}; 
+    std::string rom {"INVADERS"}; 
     
     Chip8 chip8(rom);
     SDL_Module sdl(width, height, scale);
