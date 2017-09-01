@@ -467,8 +467,9 @@ Chip8::updateSystemTimers() {
     }
     
     if (sound_timer > 0) {
-       if(sound_timer != 0) {
+       if (sound_timer != 0) {
             --sound_timer;
+            std::cout <<'\7';
         }
     }
 }
