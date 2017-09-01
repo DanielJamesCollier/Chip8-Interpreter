@@ -44,5 +44,6 @@ private /* data */:
 public /* data */:
     std::array<std::uint8_t, chip8_consts::num_keys> keys;
     bool draw_flag;
+    bool beep_flag;
 };
 #endif // CHIP8_HPP

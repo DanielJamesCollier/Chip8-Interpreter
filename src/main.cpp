@@ -1,7 +1,6 @@
 // my
-#include "Chip8.hpp"
-#include "SDL_Module.hpp"
-//#include "djc_cmdline.hpp"
+#include "chip8.hpp"
+#include "sdl_module.hpp"
 
 // std
 #include <chrono>
@@ -19,7 +18,8 @@ int main(int argc, char* argv[]) {
     auto scale {10};
     auto width {64};
     auto height {32};
-    std::string rom {"INVADERS"}; 
+
+    std::string rom {"PONG"}; 
     
     Chip8 chip8(rom);
     SDL_Module sdl(width, height, scale);
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
         auto now = std::chrono::system_clock::now();
         auto duration_system_timers = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_system_timers);
         auto duration_second_counter = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_second_counter);
-        auto duration_clock_speed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_clock_speed);
+        auto duration_clock_speed = std::chrono::duration_cast<std::chrono::microseconds>(now - start_clock_speed);
         
         // code happens once per 16ms inside here - updates chip8 system timers
         if (duration_system_timers >= 16ms) {
@@ -51,14 +51,25 @@ int main(int argc, char* argv[]) {
             frame = 0;
         }
         
-        // clock speed limiter
-        chip8.tick();
-
+        // clock speed limiter [1m == 1000hz] [2m == 500hz]
+        if (duration_clock_speed >= 1ms) {
+            chip8.tick();
+            start_clock_speed = std::chrono::system_clock::now();
+        }
+        
+        // gfx
         if (chip8.draw_flag) {
             chip8.renderTo(RGBA_buffer);
             sdl.draw(RGBA_buffer);
             chip8.draw_flag = false;
         }
+
+        // audio 
+        if (chip8.beep_flag) {
+            sdl.play_beep();
+            chip8.beep_flag = false;
+        }
+       
 
         frame++;
     }

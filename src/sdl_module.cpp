@@ -1,5 +1,5 @@
 // my
-#include "SDL_Module.hpp"
+#include "sdl_module.hpp"
 
 // std
 #include <cstdlib>
@@ -100,3 +100,11 @@ SDL_Module::draw(std::array<std::uint32_t, 64 * 32> const &pixels) {
    SDL_RenderCopy(m_renderer, m_renderTexture, nullptr, nullptr); 
    SDL_RenderPresent(m_renderer);
 }
+
+//--------------------------------------
+void
+SDL_Module::play_beep() {
+    std::cout << "Beep! - needs implementing" << std::endl;
+}
+
+

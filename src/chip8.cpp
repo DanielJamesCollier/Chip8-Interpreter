@@ -1,5 +1,5 @@
 // my
-#include "Chip8.hpp"
+#include "chip8.hpp"
 
 // std
 #include <iostream>
@@ -23,6 +23,7 @@ Chip8::Chip8(std::string rom_name)
 ,   sound_timer{0}
 ,   keys{}
 ,   draw_flag{false}
+,   beep_flag{false}
 {
     // load font into RAM
     std::uint8_t chip8_fontset[80] {
@@ -469,7 +470,7 @@ Chip8::updateSystemTimers() {
     if (sound_timer > 0) {
        if (sound_timer != 0) {
             --sound_timer;
-            std::cout <<'\7';
+            beep_flag = true;
         }
     }
 }

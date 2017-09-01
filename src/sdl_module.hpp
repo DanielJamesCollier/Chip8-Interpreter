@@ -18,6 +18,7 @@ public /* RAII */:
 public /* functions */:
    bool event_loop(std::array<std::uint8_t, 16> & keys);
    void draw(std::array<std::uint32_t, 64 * 32> const & pixels);
+   void play_beep();
 
 private /* data */:
     SDL_Window *m_window;
