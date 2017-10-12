@@ -1,5 +1,5 @@
 set (SOURCEFILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Chip8.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/SDL_Module.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/chip8.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sdl_module.cpp
     PARENT_SCOPE)
